@@ -1,49 +1,69 @@
-#include<sys/types.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdio.h>
+#include <math.h>
 
-#include<sys/socket.h>
-
-#include<netinet/in.h>
-
-#include<arpa/inet.h>
-
-#include<netdb.h>
-
-#include<unistd.h>
-
-#include<string.h>
-
-#include<stdio.h>
-
-#include<math.h>
-
-#define SERVER ADDR "192.168.117.128"
-
+#define SERVER_ADDR "192.168.117.128"
 #define SERVER_PORT 15678
-
 #define MAX_MSG 100
 
-int main()
+int main() {
+    int sd, newsd, cli_len, n;
+    char line[MAX_MSG];
+    struct sockaddr_in cli_addr, serv_addr;
 
-{ int sd, newsd, cli_len,n; char line [MAX_MSG]; struct sockaddr_in cli_addr,serv_addr; bzero((char*) &serv_addr, sizeof(serv_addr)); serv_addr.sin_family = AF_INET; serv_addr.sin_addr.s_addr=inet_addr(SERVER_ADDR); serv_addr.sin port = htons(SERVER_PORT); sd=socket(AF_INET,SOCK_STREAM, 0);
+    bzero((char*)&serv_addr, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = inet_addr(SERVER_ADDR);
+    serv_addr.sin_port = htons(SERVER_PORT);
 
-printf("Successfully created stream socket\n"); bind(sd, (struct sockaddr*)&serv_addr, sizeof (serv_addr)); printf("Local Port Bound Successfully!!\n"); listen (sd,1);
+    sd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sd < 0) {
+        perror("Error opening socket");
+        return 1;
+    }
+    printf("Successfully created stream socket\n");
 
-while(1)
+    if (bind(sd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
+        perror("Binding failed");
+        return 1;
+    }
+    printf("Local Port Bound Successfully!!\n");
 
-{ fflush(stdin); printf("Waiting for any Client to connect at server port...%u \n", SERVER_PORT); newsd = accept (sd, (struct sockaddr*)&cli_addr,&cli_len); fflush(stdin);
+    listen(sd, 1);
+    printf("Waiting for any Client to connect at server port %u\n", SERVER_PORT);
 
-do
+    while (1) {
+        cli_len = sizeof(cli_addr);
+        newsd = accept(sd, (struct sockaddr*)&cli_addr, &cli_len);
+        if (newsd < 0) {
+            perror("Accept failed");
+            continue;
+        }
 
-{ fflush(stdin); memset(line, 0x0, MAX_MSG); n=recv(newsd, line, (strlen(line)+1),0);
+        printf("Connection established with client\n");
 
-line[n]='\n';
+        do {
+            memset(line, 0x0, MAX_MSG);
+            n = recv(newsd, line, sizeof(line), 0);
+            if (n < 0) {
+                perror("Error in receiving data");
+                break;
+            }
+            printf("Received from HOST: %s\n", line);
+            send(newsd, line, n, 0);
+        } while (strcmp(line, "quit") != 0);
 
-printf("Recieved from HOST: %s\n", line); send(newsd, line, strlen(line)+1,0); fflush(stdin); }while(strcmp(line,"quit"));
+        printf("Closing connection with host...\n");
+        close(newsd);
+        printf("\n\n");
+    }
 
-printf("CLOSING connection with host....\n");
-
-close(newsd); printf("\n\n"); }
-
-return 0;
-
+    close(sd);
+    return 0;
 }
