@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#define SERVER_ADDR "192.168.117.128"
+#define SERVER_ADDR "0.0.0.0"
 #define SERVER_PORT 15678
 #define MAX_MSG 100
 
@@ -67,3 +67,6 @@ int main() {
     close(sd);
     return 0;
 }
+
+
+
